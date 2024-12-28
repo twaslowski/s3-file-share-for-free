@@ -2,7 +2,7 @@
 
 A modern web application for easily sharing and managing files using Amazon S3 storage with a clean and intuitive user interface.
 
-![S3 File Share GUI Screenshot](screenshot.png) <!-- Add your application screenshot here -->
+![S3 File Share GUI Screenshot](static/img/screenshot.png)
 
 ## Features
 
