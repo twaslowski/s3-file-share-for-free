@@ -27,8 +27,8 @@ A modern web application for easily sharing and managing files using Amazon S3 s
 
 1. Clone the repository: 
 ```bash
-git clone https://github.com/yourusername/s3filesharegui.git
-cd s3filesharegui
+git clone https://github.com/rohitg00/s3-file-share-for-free.git
+cd s3-file-share-for-free
 ```
 2. Install dependencies:
 ```bash
@@ -108,7 +108,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Support
 
-For support, please open an issue in the GitHub repository or contact [ghumare64@gmail.com]
+For support, please open an issue in the GitHub repository or contact [email here](ghumare64@gmail.com)
 
 ---
 
