@@ -105,6 +105,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - AWS SDK for Python (Boto3)
 - Flask web framework
 - Bootstrap CSS framework
+- Neon cloud icon design for favicon
 
 ## Support
 
