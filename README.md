@@ -30,29 +30,34 @@ A modern web application for easily sharing and managing files using Amazon S3 s
 git clone https://github.com/rohitg00/s3-file-share-for-free.git
 cd s3-file-share-for-free
 ```
-2. Install dependencies:
+2. Running Application using poetry:
+- Install dependencies:
 ```bash
 poetry install
 ```
-3. Set up environment variables:
-```bash
-cp .env.example .env
-```
-4. Edit `.env` file with your AWS credentials and configuration:
-```bash
-AWS_ACCESS_KEY_ID=your_access_key
-AWS_SECRET_ACCESS_KEY=your_secret_key
-AWS_DEFAULT_REGION=your_region
-S3_BUCKET=your_bucket_name
-```
-### Running the Application
-
-1. Start the application:
+- Start the application:
 ```bash
 poetry run python app.py
 ```
-2. Open your browser and navigate to `http://localhost:5001` to access the application.
+3. Running Application using PIP:
+- Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+- Start the application:
+```bash
+python app.py
+```
 
+4. Open your browser and navigate to `http://localhost:5001` to access the application.
+
+5. Configure AWS credentials through the web interface:
+   - Click "Configure S3" button
+   - Enter your AWS Access Key ID
+   - Enter your AWS Secret Access Key
+   - Enter your S3 Bucket name
+   - Enter your preferred AWS Region (default: us-east-1)
+   - Click "Save" button
 
 ## Usage
 
@@ -79,6 +84,15 @@ The application uses:
 - AWS S3 for file storage
 - Modern JavaScript for frontend interactivity
 - Bootstrap for responsive design
+
+## Technical Details
+
+- Backend: Python Flask
+- Frontend: JavaScript, Tailwind CSS
+- Storage: Amazon S3
+- File Upload: Chunked upload for large files
+- Preview Support: Images, PDFs, Videos
+- Security: Server-side AWS credential management
 
 ## Security Features
 

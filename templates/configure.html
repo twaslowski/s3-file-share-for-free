@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configure S3 - File Manager</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.css') }}">
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto py-8">
+        <h1 class="text-3xl font-bold mb-8 text-center">Configure S3 Settings</h1>
+        
+        <div class="max-w-md mx-auto bg-white rounded-lg shadow-md p-6">
+            <form id="configForm" class="space-y-4">
+                <div class="relative">
+                    <label class="block text-sm font-medium text-gray-700">AWS Access Key ID</label>
+                    <input type="password" name="access_key" required 
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                           autocomplete="off">
+                    <button type="button" 
+                            class="absolute right-2 top-8 text-gray-600 hover:text-gray-800"
+                            onclick="toggleVisibility(this.previousElementSibling)">
+                        👁️
+                    </button>
+                </div>
+                
+                <div class="relative">
+                    <label class="block text-sm font-medium text-gray-700">AWS Secret Access Key</label>
+                    <input type="password" name="secret_key" required 
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                           autocomplete="off">
+                    <button type="button" 
+                            class="absolute right-2 top-8 text-gray-600 hover:text-gray-800"
+                            onclick="toggleVisibility(this.previousElementSibling)">
+                        👁️
+                    </button>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">S3 Bucket Name</label>
+                    <input type="text" name="bucket" required 
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">AWS Region</label>
+                    <select name="region" 
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                        <option value="us-east-1">US East (N. Virginia) us-east-1</option>
+                        <option value="us-east-2">US East (Ohio) us-east-2</option>
+                        <option value="us-west-1">US West (N. California) us-west-1</option>
+                        <option value="us-west-2">US West (Oregon) us-west-2</option>
+                        <option value="ap-south-1">Asia Pacific (Mumbai) ap-south-1</option>
+                        <option value="ap-northeast-1">Asia Pacific (Tokyo) ap-northeast-1</option>
+                        <option value="ap-southeast-1">Asia Pacific (Singapore) ap-southeast-1</option>
+                        <option value="eu-central-1">Europe (Frankfurt) eu-central-1</option>
+                        <option value="eu-west-1">Europe (Ireland) eu-west-1</option>
+                    </select>
+                </div>
+                
+                <button type="submit" 
+                        class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">
+                    Save Configuration
+                </button>
+            </form>
+            <div id="errorMessage" class="mt-4 text-red-600 hidden"></div>
+        </div>
+    </div>
+
+    <script>
+        function toggleVisibility(inputElement) {
+            if (inputElement.type === "password") {
+                inputElement.type = "text";
+            } else {
+                inputElement.type = "password";
+            }
+        }
+
+        document.getElementById('configForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const errorDiv = document.getElementById('errorMessage');
+            
+            try {
+                const response = await fetch('/configure', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    alert('Configuration saved successfully!');
+                    window.location.href = '/';
+                } else {
+                    errorDiv.textContent = data.error || 'Configuration failed';
+                    errorDiv.classList.remove('hidden');
+                }
+            } catch (error) {
+                errorDiv.textContent = 'An error occurred while saving the configuration';
+                errorDiv.classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+</html> 

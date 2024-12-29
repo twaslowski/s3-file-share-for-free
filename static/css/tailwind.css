@@ -245,3 +245,27 @@ footer p {
     margin: 0;
     font-size: 0.875rem;
 }
+
+.progress-bar-container {
+    @apply mb-4 p-4 bg-white rounded-lg shadow;
+}
+
+.progress-bar {
+    @apply w-full bg-gray-200 rounded-full h-2.5 overflow-hidden;
+}
+
+.progress-bar-fill {
+    @apply bg-blue-600 h-full rounded-full transition-all duration-300;
+}
+
+#toggle-menu {
+    @apply transform opacity-0 scale-95 transition-all duration-200 ease-out;
+}
+
+#toggle-menu.show {
+    @apply transform opacity-100 scale-100;
+}
+
+.form-checkbox {
+    @apply rounded border-gray-300 text-blue-500 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50;
+}

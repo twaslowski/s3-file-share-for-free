@@ -1,9 +1,9 @@
 import os
 import logging
-from flask import Flask, render_template, request, jsonify, send_file, Response, abort
+from flask import Flask, render_template, request, jsonify, send_file, Response, abort, redirect, url_for
 from werkzeug.utils import secure_filename
-from s3_utils import upload_file, download_file, list_files_and_folders, get_file_url, delete_file, create_folder, delete_folder
-from config import S3_BUCKET
+from s3_utils import upload_file, download_file, list_files_and_folders, get_file_url, delete_file, create_folder, delete_folder, validate_credentials, is_s3_configured
+from config import s3_config
 import mimetypes
 import boto3
 from botocore.exceptions import ClientError
@@ -25,7 +25,7 @@ mimetypes.add_type('image/heif', '.heif')
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html', s3_config=s3_config, is_configured=is_s3_configured())
 
 @app.route('/upload', methods=['POST'])
 def upload():
@@ -49,6 +49,12 @@ def upload():
 @app.route('/upload_chunk', methods=['POST'])
 def upload_chunk():
     try:
+        # Check if S3 is configured
+        if not is_s3_configured():
+            return jsonify({
+                'error': 'S3 is not configured. Please configure S3 settings first.'
+            }), 400
+            
         chunk = request.files['chunk']
         filename = request.form['filename']
         file_size = int(request.form['file_size'])
@@ -57,23 +63,30 @@ def upload_chunk():
 
         logger.info(f"Uploading chunk {chunk_number + 1} of {total_chunks} for file {filename}")
 
-        s3 = boto3.client('s3')
+        s3 = boto3.client('s3',
+                         aws_access_key_id=s3_config.aws_access_key_id,
+                         aws_secret_access_key=s3_config.aws_secret_access_key,
+                         region_name=s3_config.aws_region)
+
         if file_size < CHUNK_SIZE:
             # Single-part upload for small files
-            s3.upload_fileobj(chunk, S3_BUCKET, filename)
+            s3.upload_fileobj(chunk, s3_config.s3_bucket, filename)
             logger.info(f"Single-part upload completed for file {filename}")
             return jsonify({'message': 'File uploaded successfully'}), 200
         else:
             # Multipart upload for larger files
             if chunk_number == 0:
-                multipart_upload = s3.create_multipart_upload(Bucket=S3_BUCKET, Key=filename)
+                multipart_upload = s3.create_multipart_upload(
+                    Bucket=s3_config.s3_bucket, 
+                    Key=filename
+                )
                 upload_id = multipart_upload['UploadId']
                 logger.info(f"Initialized multipart upload for {filename} with UploadId: {upload_id}")
             else:
                 upload_id = request.form['upload_id']
 
             part = s3.upload_part(
-                Bucket=S3_BUCKET,
+                Bucket=s3_config.s3_bucket,
                 Key=filename,
                 PartNumber=chunk_number + 1,
                 UploadId=upload_id,
@@ -85,7 +98,7 @@ def upload_chunk():
                 for i in range(total_chunks):
                     parts.append({
                         'ETag': s3.upload_part(
-                            Bucket=S3_BUCKET,
+                            Bucket=s3_config.s3_bucket,
                             Key=filename,
                             PartNumber=i + 1,
                             UploadId=upload_id,
@@ -95,7 +108,7 @@ def upload_chunk():
                     })
 
                 s3.complete_multipart_upload(
-                    Bucket=S3_BUCKET,
+                    Bucket=s3_config.s3_bucket,
                     Key=filename,
                     UploadId=upload_id,
                     MultipartUpload={'Parts': parts}
@@ -151,31 +164,59 @@ def delete(filename):
 @app.route('/list')
 def list_bucket_files():
     try:
+        if not is_s3_configured():
+            return jsonify({
+                'files': [],
+                'message': 'S3 not configured'
+            }), 200
+            
         prefix = request.args.get('prefix', '')
         min_file_size = request.args.get('min_file_size', 0, type=int)
-        files, folders = list_files_and_folders(prefix, min_file_size)
+        
+        try:
+            files, folders = list_files_and_folders(prefix, min_file_size)
+        except Exception as e:
+            logger.error(f"Error listing files and folders: {str(e)}")
+            return jsonify({
+                'error': 'Unable to list files. Please check your S3 configuration.',
+                'details': str(e)
+            }), 500
+            
         file_data = []
         for file in files:
-            mime_type, _ = mimetypes.guess_type(file['name'])
-            preview_url = None
-            if mime_type and (mime_type.startswith('image/') or mime_type == 'application/pdf' or mime_type.startswith('video/')):
-                preview_url = get_file_url(file['name'])
-            file_data.append({
-                'name': file['name'],
-                'size': file['size'],
-                'preview_url': preview_url,
-                'mime_type': mime_type,
-                'type': 'file'
-            })
+            try:
+                mime_type, _ = mimetypes.guess_type(file['name'])
+                preview_url = None
+                if mime_type and (mime_type.startswith('image/') or 
+                                mime_type == 'application/pdf' or 
+                                mime_type.startswith('video/')):
+                    preview_url = get_file_url(file['name'])
+                file_data.append({
+                    'name': file['name'],
+                    'size': file['size'],
+                    'preview_url': preview_url,
+                    'mime_type': mime_type,
+                    'type': 'file'
+                })
+            except Exception as e:
+                logger.warning(f"Error processing file {file['name']}: {str(e)}")
+                # Skip files that can't be processed
+                continue
+                
         for folder in folders:
             file_data.append({
                 'name': folder,
                 'type': 'folder'
             })
+            
         return jsonify({'files': file_data}), 200
+        
     except Exception as e:
-        logger.error(f"Error listing files and folders: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Error in list_bucket_files: {str(e)}", exc_info=True)
+        return jsonify({
+            'error': 'An unexpected error occurred',
+            'details': str(e)
+        }), 500
 
 @app.route('/create_folder', methods=['POST'])
 def create_new_folder():
@@ -202,6 +243,30 @@ def remove_folder(folder_name):
 def internal_server_error(error):
     logger.error(f"Internal Server Error: {str(error)}")
     return jsonify({'error': 'Internal Server Error'}), 500
+
+@app.route('/configure', methods=['GET', 'POST'])
+def configure_s3():
+    if request.method == 'POST':
+        access_key = request.form.get('access_key')
+        secret_key = request.form.get('secret_key')
+        bucket = request.form.get('bucket')
+        region = request.form.get('region', 'us-east-1')
+        
+        if not all([access_key, secret_key, bucket]):
+            return jsonify({'error': 'All fields are required'}), 400
+            
+        # Validate credentials
+        is_valid, message = validate_credentials(access_key, secret_key, bucket, region)
+        if is_valid:
+            s3_config.aws_access_key_id = access_key
+            s3_config.aws_secret_access_key = secret_key
+            s3_config.s3_bucket = bucket
+            s3_config.aws_region = region
+            return jsonify({'message': 'Configuration updated successfully'}), 200
+        else:
+            return jsonify({'error': message}), 400
+            
+    return render_template('configure.html')
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
