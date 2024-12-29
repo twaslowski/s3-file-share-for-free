@@ -102,6 +102,60 @@ The application uses:
 - Temporary URL generation
 - Access control implementation
 
+## Deployment on Sevalla
+
+### Prerequisites
+- A Sevalla account (Sign up at [sevalla.com](https://sevalla.com))
+- Your application code pushed to a Git repository
+- AWS credentials (Access Key ID and Secret Access Key)
+
+### Deployment Steps
+
+1. **Login to Sevalla Dashboard**
+   - Go to [dashboard.sevalla.com](https://dashboard.sevalla.com)
+   - Sign in with your credentials
+
+2. **Create New Application**
+   - Click on "New Application" 
+   - Select your Git repository
+   - Choose the branch you want to deploy
+   - ✅ Automatic Deployments when commits are pushed to the repository
+
+![S3 File Share GUI Screenshot](https://hostyourgif.live/uploads/1735479021630-s31.gif)
+
+3. **Configure Environment Variables**
+   Add the following environment variables:
+   ```env
+   AWS_ACCESS_KEY_ID=your_access_key_id
+   AWS_SECRET_ACCESS_KEY=your_secret_access_key
+   AWS_REGION=your_aws_region
+   ```
+
+![GIF](https://hostyourgif.live/uploads/1735479021720-s32.gif)
+
+4. **Deploy Application**
+   - Click "Deploy" to start the deployment process
+   - Sevalla will automatically:
+     - Install dependencies from requirements.txt
+     - Use nix to install dependencies and create docker image
+     - Set up the Python environment
+     - Start your Flask application
+
+![GIF](https://hostyourgif.live/uploads/1735479021811-s33.gif)
+
+5. **Access Your Application**
+   - Once deployed, Sevalla will provide you with a URL
+   - Your application will be accessible at `https://your-app-name.sevalla.app`
+
+### Monitoring and Logs
+
+- Access application logs from the Sevalla dashboard
+- Monitor application performance metrics
+- Set up alerts for application status
+
+For more detailed deployment instructions, visit [Sevalla Documentation](https://docs.sevalla.com)
+
+
 ## Contributing
 
 1. Fork the repository
