@@ -1,15 +1,18 @@
 import os
 import logging
-from flask import Flask, render_template, request, jsonify, send_file, Response, abort, redirect, url_for
+from flask import Flask, render_template, request, jsonify, send_file, Response, abort, redirect, url_for, session
 from werkzeug.utils import secure_filename
 from s3_utils import upload_file, download_file, list_files_and_folders, get_file_url, delete_file, create_folder, delete_folder, validate_credentials, is_s3_configured
 from config import s3_config
 import mimetypes
 import boto3
 from botocore.exceptions import ClientError
+from functools import wraps
+import secrets
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 1024 * 1024 * 1024 * 1024  # 1 TB
+app.secret_key = os.environ.get('FLASK_SECRET_KEY', secrets.token_hex(32))
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
@@ -23,11 +26,21 @@ mimetypes.add_type('image/webp', '.webp')
 mimetypes.add_type('image/heic', '.heic')
 mimetypes.add_type('image/heif', '.heif')
 
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'authenticated' not in session:
+            return redirect(url_for('configure_s3'))
+        return f(*args, **kwargs)
+    return decorated_function
+
 @app.route('/')
+@login_required
 def index():
     return render_template('index.html', s3_config=s3_config, is_configured=is_s3_configured())
 
 @app.route('/upload', methods=['POST'])
+@login_required
 def upload():
     if 'file' not in request.files:
         return jsonify({'error': 'No file part'}), 400
@@ -47,6 +60,7 @@ def upload():
             return jsonify({'error': str(e)}), 500
 
 @app.route('/upload_chunk', methods=['POST'])
+@login_required
 def upload_chunk():
     try:
         # Check if S3 is configured
@@ -123,6 +137,7 @@ def upload_chunk():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/download/<path:filename>')
+@login_required
 def download(filename):
     try:
         s3 = boto3.client('s3')
@@ -162,7 +177,8 @@ def delete(filename):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/list')
-def list_bucket_files():
+@login_required
+def list_files():
     try:
         if not is_s3_configured():
             return jsonify({
@@ -219,6 +235,7 @@ def list_bucket_files():
         }), 500
 
 @app.route('/create_folder', methods=['POST'])
+@login_required
 def create_new_folder():
     folder_name = request.json.get('folder_name')
     if not folder_name:
@@ -231,6 +248,7 @@ def create_new_folder():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/delete_folder/<path:folder_name>', methods=['DELETE'])
+@login_required
 def remove_folder(folder_name):
     try:
         delete_folder(folder_name)
@@ -262,11 +280,19 @@ def configure_s3():
             s3_config.aws_secret_access_key = secret_key
             s3_config.s3_bucket = bucket
             s3_config.aws_region = region
+            # Set session as authenticated
+            session['authenticated'] = True
+            session['bucket'] = bucket
             return jsonify({'message': 'Configuration updated successfully'}), 200
         else:
             return jsonify({'error': message}), 400
             
     return render_template('configure.html')
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('configure_s3'))
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

@@ -10,6 +10,25 @@
     <div class="container mx-auto py-8">
         <h1 class="text-3xl font-bold mb-8 text-center">Configure S3 Settings</h1>
         
+        {% if session.get('authenticated') %}
+        <div class="max-w-md mx-auto bg-white rounded-lg shadow-md p-6 mb-6">
+            <div class="text-center mb-6">
+                <p class="text-green-600 font-semibold">✓ Currently configured for bucket:</p>
+                <p class="text-gray-800 text-lg">{{ session.get('bucket') }}</p>
+            </div>
+            <div class="flex justify-between">
+                <a href="{{ url_for('index') }}" 
+                   class="bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700">
+                    Back to Files
+                </a>
+                <a href="{{ url_for('logout') }}" 
+                   class="bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700">
+                    Logout
+                </a>
+            </div>
+        </div>
+        {% endif %}
+        
         <div class="max-w-md mx-auto bg-white rounded-lg shadow-md p-6">
             <form id="configForm" class="space-y-4">
                 <div class="relative">
@@ -60,7 +79,11 @@
                 
                 <button type="submit" 
                         class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">
-                    Save Configuration
+                    {% if session.get('authenticated') %}
+                        Update Configuration
+                    {% else %}
+                        Save Configuration
+                    {% endif %}
                 </button>
             </form>
             <div id="errorMessage" class="mt-4 text-red-600 hidden"></div>
@@ -79,7 +102,6 @@
         document.getElementById('configForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = new FormData(e.target);
-            const errorDiv = document.getElementById('errorMessage');
             
             try {
                 const response = await fetch('/configure', {
@@ -90,14 +112,16 @@
                 const data = await response.json();
                 
                 if (response.ok) {
-                    alert('Configuration saved successfully!');
                     window.location.href = '/';
                 } else {
-                    errorDiv.textContent = data.error || 'Configuration failed';
+                    const errorDiv = document.getElementById('errorMessage');
+                    errorDiv.textContent = data.error;
                     errorDiv.classList.remove('hidden');
                 }
             } catch (error) {
-                errorDiv.textContent = 'An error occurred while saving the configuration';
+                console.error('Error:', error);
+                const errorDiv = document.getElementById('errorMessage');
+                errorDiv.textContent = 'An error occurred while saving the configuration.';
                 errorDiv.classList.remove('hidden');
             }
         });

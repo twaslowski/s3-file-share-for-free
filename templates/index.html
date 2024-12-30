@@ -12,98 +12,128 @@
     <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='img/favicon-16x16.png') }}">
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col">
+    <nav class="bg-white shadow-lg">
+        <div class="container mx-auto px-6 py-3 flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-blue-600">S3 File Manager</h1>
+            <div class="flex items-center space-x-4">
+                {% if session.get('authenticated') %}
+                    <span class="text-gray-600">Bucket: {{ session.get('bucket') }}</span>
+                    <a href="{{ url_for('configure_s3') }}" 
+                       class="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">
+                        Reconfigure
+                    </a>
+                    <a href="{{ url_for('logout') }}" 
+                       class="bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700">
+                        Logout
+                    </a>
+                {% else %}
+                    <a href="{{ url_for('configure_s3') }}" 
+                       class="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">
+                        Configure S3
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
     <div class="container mx-auto py-8 flex-grow animate-fade-in">
-        <h1 class="text-4xl font-bold mb-8 text-center text-blue-600">S3 File Manager</h1>
-        
-        <div class="mb-4 text-right">
-            <a href="{{ url_for('configure_s3') }}" 
-               class="inline-block bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">
-                Configure S3
-            </a>
-        </div>
+        {% if session.get('authenticated') %}
+            <!-- File upload and management interface -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <!-- Existing file upload and management code -->
+                <div class="mb-8 animate-slide-in">
+                    <div id="drop-zone" class="drag-drop-zone text-center">
+                        <p class="mb-4 text-lg">Drag & Drop files here or click to select</p>
+                        <input type="file" id="file-input" class="hidden" multiple>
+                        <button onclick="document.getElementById('file-input').click();" class="btn btn-primary btn-select-files">
+                            <i class="fas fa-upload"></i> Select Files
+                        </button>
+                    </div>
+                </div>
 
-        <div class="mb-8 animate-slide-in">
-            <div id="drop-zone" class="drag-drop-zone text-center">
-                <p class="mb-4 text-lg">Drag & Drop files here or click to select</p>
-                <input type="file" id="file-input" class="hidden" multiple>
-                <button onclick="document.getElementById('file-input').click();" class="btn btn-primary btn-select-files">
-                    <i class="fas fa-upload"></i> Select Files
-                </button>
-            </div>
-        </div>
+                <div id="message" class="mt-4 text-center">
+                    <!-- Messages will appear here -->
+                </div>
 
-        <div id="message" class="mt-4 text-center">
-            <!-- Messages will appear here -->
-        </div>
+                <div id="loading-spinner" class="hidden">
+                    <div class="flex justify-center items-center">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                    </div>
+                </div>
 
-        <div id="loading-spinner" class="hidden">
-            <div class="flex justify-center items-center">
-                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-            </div>
-        </div>
+                <div class="flex justify-between items-center mb-6">
+                    <div id="current-path" class="text-gray-700 font-medium"></div>
+                    <div class="flex space-x-4">
+                        <button id="create-folder-btn" 
+                                class="bg-white bg-opacity-75 hover:bg-opacity-90 text-black font-medium py-2 px-4 rounded-lg shadow-sm transition-all duration-200 flex items-center space-x-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                            </svg>
+                            <span>New Folder</span>
+                        </button>
+                        
+                        <div class="relative">
+                            <button id="toggle-files-btn"
+                                    class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg shadow-sm transition-all duration-200 flex items-center space-x-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                </svg>
+                                <span>Visibility</span>
+                            </button>
+                            
+                            <div id="toggle-menu" class="absolute right-0 mt-2 py-2 w-48 bg-white rounded-lg shadow-xl hidden animate-fade-in">
+                                <label class="flex items-center px-4 py-2 hover:bg-gray-100 cursor-pointer">
+                                    <input type="checkbox" id="show-hidden-files" class="form-checkbox h-4 w-4 text-blue-500">
+                                    <span class="ml-2 text-gray-700">Show Hidden Files</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-        <div class="flex justify-between items-center mb-6">
-            <div id="current-path" class="text-gray-700 font-medium"></div>
-            <div class="flex space-x-4">
-                <button id="create-folder-btn" 
-                        class="bg-white bg-opacity-75 hover:bg-opacity-90 text-black font-medium py-2 px-4 rounded-lg shadow-sm transition-all duration-200 flex items-center space-x-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                    </svg>
-                    <span>New Folder</span>
-                </button>
-                
-                <div class="relative">
-                    <button id="toggle-files-btn"
-                            class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg shadow-sm transition-all duration-200 flex items-center space-x-2">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                        </svg>
-                        <span>Visibility</span>
-                    </button>
-                    
-                    <div id="toggle-menu" class="absolute right-0 mt-2 py-2 w-48 bg-white rounded-lg shadow-xl hidden animate-fade-in">
-                        <label class="flex items-center px-4 py-2 hover:bg-gray-100 cursor-pointer">
-                            <input type="checkbox" id="show-hidden-files" class="form-checkbox h-4 w-4 text-blue-500">
-                            <span class="ml-2 text-gray-700">Show Hidden Files</span>
-                        </label>
+                <div id="progress-bars" class="space-y-4"></div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div class="lg:col-span-2 card animate-slide-in">
+                        <h2 class="text-2xl font-bold card-header">Files and Folders</h2>
+                        <div id="fileList" class="bg-white rounded-lg shadow-md p-6 min-h-[300px]">
+                            {% if not is_configured %}
+                            <div class="text-center text-gray-500">
+                                <p>Configure S3 to view and manage files</p>
+                            </div>
+                            {% else %}
+                            <div id="file-list" class="mt-4">
+                                <!-- Files will be listed here -->
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="card animate-slide-in">
+                        <h2 class="text-2xl font-bold card-header">File Preview</h2>
+                        <div id="preview-area" class="mt-4">
+                            <!-- File previews will appear here -->
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-
-        <div id="progress-bars" class="space-y-4"></div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div class="lg:col-span-2 card animate-slide-in">
-                <h2 class="text-2xl font-bold card-header">Files and Folders</h2>
-                <div id="fileList" class="bg-white rounded-lg shadow-md p-6 min-h-[300px]">
-                    {% if not is_configured %}
-                    <div class="text-center text-gray-500">
-                        <p>Configure S3 to view and manage files</p>
-                    </div>
-                    {% else %}
-                    <div id="file-list" class="mt-4">
-                        <!-- Files will be listed here -->
-                    </div>
-                    {% endif %}
-                </div>
+        {% else %}
+            <div class="text-center py-12">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">Welcome to S3 File Manager</h2>
+                <p class="text-gray-600 mb-8">Please configure your AWS S3 credentials to get started.</p>
+                <a href="{{ url_for('configure_s3') }}" 
+                   class="bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 inline-block">
+                    Configure S3
+                </a>
             </div>
-            <div class="card animate-slide-in">
-                <h2 class="text-2xl font-bold card-header">File Preview</h2>
-                <div id="preview-area" class="mt-4">
-                    <!-- File previews will appear here -->
-                </div>
-            </div>
-        </div>
+        {% endif %}
     </div>
 
-    <footer class="bg-gray-800 text-white py-4 mt-8">
-        <div class="container mx-auto text-center">
-            <p>&copy; 2024 S3 File Manager. All rights reserved.</p>
-            <p>Made with ❤️ by Rohit Ghumare</p>
-            <p>& Hosted on <a href="https://sevalla.com" class="text-blue-400 hover:text-blue-300">Sevalla</a></p>
+    <footer class="bg-white shadow-lg mt-8">
+        <div class="container mx-auto px-6 py-4">
+            <p class="text-center text-gray-600">
+                Made with ❤️ by Rohit Ghumare
+            </p>
         </div>
     </footer>
 
