@@ -1,8 +1,8 @@
-# S3 File Share GUI
+# Cloud Storage Manager
 
-A modern web application for easily sharing and managing files using Amazon S3 storage with a clean and intuitive user interface.
+A modern web application for managing files across multiple cloud storage providers with a clean and intuitive interface.
 
-![S3 File Share GUI Screenshot](static/img/screenshot.png)
+![Storage Manager Screenshot](static/img/screenshot.png)
 
 ## Features
 
@@ -14,6 +14,52 @@ A modern web application for easily sharing and managing files using Amazon S3 s
 - 🗂️ Folder creation and hierarchical navigation
 - 🔍 File search and filtering
 - 🔒 Secure file handling with AWS S3
+
+## Supported Cloud Providers
+
+### Enterprise-Grade Solutions
+- **Amazon S3** ($23/TB/month)
+  - Most reliable and feature-rich
+  - Multiple storage tiers
+  - Advanced analytics and automation
+  - Global infrastructure
+
+- **Google Cloud Storage** ($20/TB/month)
+  - Integrated with Google services
+  - Multiple storage classes
+  - Strong consistency
+  - 5GB free tier
+
+### Cost-Effective Solutions
+- **Cloudflare R2** ($15/TB/month)
+  - Zero egress fees
+  - Global edge network
+  - S3-compatible API
+  - 10GB free tier
+
+- **Wasabi** ($6.99/TB/month)
+  - No egress fees
+  - S3-compatible API
+  - 11x9s durability
+  - Simple pricing
+
+- **Backblaze B2** ($6/TB/month)
+  - Lowest cost
+  - Free egress with Cloudflare
+  - Simple pricing
+  - First 10GB free
+
+- **DigitalOcean Spaces** ($5/TB/month)
+  - Simple pricing structure
+  - Built-in CDN integration
+  - S3-compatible API
+  - 250GB included bandwidth
+
+- **Hetzner Storage** ($4/TB/month)
+  - European data centers
+  - S3-compatible API
+  - Automated snapshots
+  - Predictable pricing
 
 ## Getting Started
 
@@ -58,6 +104,15 @@ python app.py
    - Enter your S3 Bucket name
    - Enter your preferred AWS Region (default: us-east-1)
    - Click "Save" button
+
+## Configuration
+1. Click "Configure Storage" button
+2. Select your preferred storage provider
+3. Enter provider-specific credentials:
+   - For AWS S3: Access Key ID, Secret Key, Region
+   - For Google Cloud: Project ID, Service Account JSON
+   - For Cloudflare R2: Account ID, Access Key, Secret Key
+   - For other providers: Follow provider-specific instructions
 
 ## Usage
 
