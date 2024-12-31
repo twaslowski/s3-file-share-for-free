@@ -16,6 +16,9 @@ A modern web application for managing files across multiple cloud storage provid
 - 🔒 Secure file handling with AWS S3
 
 ## Supported Cloud Providers
+![Multi-Cloud Support](static/img/Screenshot-v2.png)
+
+The Cloud Storage Manager supports multiple cloud storage providers, giving you the flexibility to choose the best solution for your needs. Whether you prioritize cost, performance, or specific features, you can seamlessly switch between providers while maintaining a consistent user experience.
 
 ### Enterprise-Grade Solutions
 - **Amazon S3** ($23/TB/month)
