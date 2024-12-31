@@ -100,13 +100,6 @@ python app.py
 
 4. Open your browser and navigate to `http://localhost:5001` to access the application.
 
-5. Configure AWS credentials through the web interface:
-   - Click "Configure S3" button
-   - Enter your AWS Access Key ID
-   - Enter your AWS Secret Access Key
-   - Enter your S3 Bucket name
-   - Enter your preferred AWS Region (default: us-east-1)
-   - Click "Save" button
 
 ## Configuration
 1. Click "Configure Storage" button
