@@ -9,6 +9,9 @@ from google.oauth2 import service_account
 import json
 import io
 import datetime
+import logging
+
+logger = logging.getLogger(__name__)
 
 class StorageProvider(ABC):
     """Abstract base class for storage providers"""
@@ -243,35 +246,82 @@ class DigitalOceanSpacesProvider(StorageProvider):
     - Region (DO specific: nyc3, ams3, sgp1, etc.)
     """
     def __init__(self, access_key: str, secret_key: str, bucket: str, region: str):
-        self.client = boto3.client(
-            's3',
-            aws_access_key_id=access_key,
-            aws_secret_access_key=secret_key,
-            region_name=region,
-            endpoint_url=f'https://{region}.digitaloceanspaces.com'
-        )
-        self.bucket = bucket
-
-    def upload_file(self, file_obj: BinaryIO, filename: str) -> None:
-        self.client.upload_fileobj(file_obj, self.bucket, filename)
-
-    def download_file(self, filename: str) -> BinaryIO:
-        response = self.client.get_object(Bucket=self.bucket, Key=filename)
-        return response['Body']
-
-    def delete_file(self, filename: str) -> None:
-        self.client.delete_object(Bucket=self.bucket, Key=filename)
+        try:
+            logger.debug(f"Initializing DigitalOcean Spaces provider with bucket: {bucket}, region: {region}")
+            endpoint_url = f'https://{region}.digitaloceanspaces.com'
+            self.client = boto3.client(
+                's3',
+                aws_access_key_id=access_key,
+                aws_secret_access_key=secret_key,
+                endpoint_url=endpoint_url,
+                region_name=region,
+                config=boto3.session.Config(
+                    signature_version='s3v4',
+                    s3={'addressing_style': 'virtual'}
+                )
+            )
+            self.bucket = bucket
+            self.region = region
+            logger.debug("Successfully initialized DigitalOcean Spaces client")
+        except Exception as e:
+            logger.error(f"Error initializing DigitalOcean Spaces client: {str(e)}")
+            raise ValueError(f"Failed to initialize DigitalOcean Spaces client: {str(e)}")
 
     def list_files(self, prefix: str = "") -> List[dict]:
-        response = self.client.list_objects_v2(Bucket=self.bucket, Prefix=prefix)
-        return [{'name': obj['Key'], 'size': obj['Size']} for obj in response.get('Contents', [])]
+        try:
+            logger.debug(f"Listing files in bucket {self.bucket} with prefix: {prefix}")
+            response = self.client.list_objects_v2(Bucket=self.bucket, Prefix=prefix)
+            files = [{'name': obj['Key'], 'size': obj['Size']} for obj in response.get('Contents', [])]
+            logger.debug(f"Successfully listed {len(files)} files")
+            return files
+        except Exception as e:
+            logger.error(f"Error listing files in bucket {self.bucket}: {str(e)}", exc_info=True)
+            raise ValueError(f"Failed to list files: {str(e)}")
+
+    def upload_file(self, file_obj: BinaryIO, filename: str) -> None:
+        try:
+            logger.debug(f"Uploading file {filename} to bucket {self.bucket}")
+            self.client.upload_fileobj(file_obj, self.bucket, filename)
+            logger.debug(f"Successfully uploaded file {filename}")
+        except Exception as e:
+            logger.error(f"Error uploading file {filename}: {str(e)}", exc_info=True)
+            raise ValueError(f"Failed to upload file: {str(e)}")
+
+    def download_file(self, filename: str) -> BinaryIO:
+        try:
+            logger.debug(f"Downloading file {filename} from bucket {self.bucket}")
+            response = self.client.get_object(Bucket=self.bucket, Key=filename)
+            logger.debug(f"Successfully downloaded file {filename}")
+            return response['Body']
+        except Exception as e:
+            logger.error(f"Error downloading file {filename}: {str(e)}", exc_info=True)
+            raise ValueError(f"Failed to download file: {str(e)}")
+
+    def delete_file(self, filename: str) -> None:
+        try:
+            logger.debug(f"Deleting file {filename} from bucket {self.bucket}")
+            self.client.delete_object(Bucket=self.bucket, Key=filename)
+            logger.debug(f"Successfully deleted file {filename}")
+        except Exception as e:
+            logger.error(f"Error deleting file {filename}: {str(e)}", exc_info=True)
+            raise ValueError(f"Failed to delete file: {str(e)}")
 
     def get_file_url(self, filename: str, expires_in: int = 3600) -> str:
-        return self.client.generate_presigned_url(
-            'get_object',
-            Params={'Bucket': self.bucket, 'Key': filename},
-            ExpiresIn=expires_in
-        )
+        try:
+            logger.debug(f"Generating presigned URL for file {filename} with expiration {expires_in} seconds")
+            url = self.client.generate_presigned_url(
+                'get_object',
+                Params={
+                    'Bucket': self.bucket,
+                    'Key': filename
+                },
+                ExpiresIn=expires_in
+            )
+            logger.debug(f"Successfully generated presigned URL for file {filename}")
+            return url
+        except Exception as e:
+            logger.error(f"Error generating presigned URL for file {filename}: {str(e)}", exc_info=True)
+            raise ValueError(f"Failed to generate presigned URL: {str(e)}")
 
 class CloudflareR2Provider(StorageProvider):
     """Cloudflare R2 provider (S3 compatible)
@@ -319,38 +369,95 @@ class HetznerStorageProvider(StorageProvider):
     - Access Key
     - Secret Key
     - Bucket Name
-    - Region (Hetzner specific regions)
+    - Region (eu-central: fsn1/nbg1, eu-north: hel1, us-east: ash, us-west: hil, ap-southeast: sin)
     """
-    def __init__(self, access_key: str, secret_key: str, bucket: str, region: str = "eu-central-1"):
-        self.client = boto3.client(
-            's3',
-            aws_access_key_id=access_key,
-            aws_secret_access_key=secret_key,
-            endpoint_url=f'https://s3.{region}.hetzner.cloud',
-            region_name=region
-        )
-        self.bucket = bucket
+    def __init__(self, access_key: str, secret_key: str, bucket: str, region: str = "nbg1"):
+        try:
+            logger.debug(f"Initializing Hetzner Storage provider with bucket: {bucket}, region: {region}")
+            # Map region codes to endpoints
+            region_endpoints = {
+                'fsn1': 'eu-central',
+                'nbg1': 'eu-central',
+                'hel1': 'eu-north',
+                'ash': 'us-east',
+                'hil': 'us-west',
+                'sin': 'ap-southeast'
+            }
+            zone = region_endpoints.get(region, 'eu-central')
+            endpoint_url = f'https://{region}.your-objectstorage.com'
+            self.client = boto3.client(
+                's3',
+                aws_access_key_id=access_key,
+                aws_secret_access_key=secret_key,
+                endpoint_url=endpoint_url,
+                region_name=region,
+                config=boto3.session.Config(
+                    signature_version='s3v4',
+                    s3={'addressing_style': 'path'}
+                )
+            )
+            self.bucket = bucket
+            self.region = region
+            logger.debug("Successfully initialized Hetzner Storage client")
+        except Exception as e:
+            logger.error(f"Error initializing Hetzner Storage client: {str(e)}")
+            raise ValueError(f"Failed to initialize Hetzner Storage client: {str(e)}")
 
     def upload_file(self, file_obj: BinaryIO, filename: str) -> None:
-        self.client.upload_fileobj(file_obj, self.bucket, filename)
+        try:
+            logger.debug(f"Uploading file {filename} to bucket {self.bucket}")
+            self.client.upload_fileobj(file_obj, self.bucket, filename)
+            logger.debug(f"Successfully uploaded file {filename}")
+        except Exception as e:
+            logger.error(f"Error uploading file {filename}: {str(e)}", exc_info=True)
+            raise ValueError(f"Failed to upload file: {str(e)}")
 
     def download_file(self, filename: str) -> BinaryIO:
-        response = self.client.get_object(Bucket=self.bucket, Key=filename)
-        return response['Body']
+        try:
+            logger.debug(f"Downloading file {filename} from bucket {self.bucket}")
+            response = self.client.get_object(Bucket=self.bucket, Key=filename)
+            logger.debug(f"Successfully downloaded file {filename}")
+            return response['Body']
+        except Exception as e:
+            logger.error(f"Error downloading file {filename}: {str(e)}", exc_info=True)
+            raise ValueError(f"Failed to download file: {str(e)}")
 
     def delete_file(self, filename: str) -> None:
-        self.client.delete_object(Bucket=self.bucket, Key=filename)
+        try:
+            logger.debug(f"Deleting file {filename} from bucket {self.bucket}")
+            self.client.delete_object(Bucket=self.bucket, Key=filename)
+            logger.debug(f"Successfully deleted file {filename}")
+        except Exception as e:
+            logger.error(f"Error deleting file {filename}: {str(e)}", exc_info=True)
+            raise ValueError(f"Failed to delete file: {str(e)}")
 
     def list_files(self, prefix: str = "") -> List[dict]:
-        response = self.client.list_objects_v2(Bucket=self.bucket, Prefix=prefix)
-        return [{'name': obj['Key'], 'size': obj['Size']} for obj in response.get('Contents', [])]
+        try:
+            logger.debug(f"Listing files in bucket {self.bucket} with prefix: {prefix}")
+            response = self.client.list_objects_v2(Bucket=self.bucket, Prefix=prefix)
+            files = [{'name': obj['Key'], 'size': obj['Size']} for obj in response.get('Contents', [])]
+            logger.debug(f"Successfully listed {len(files)} files")
+            return files
+        except Exception as e:
+            logger.error(f"Error listing files in bucket {self.bucket}: {str(e)}", exc_info=True)
+            raise ValueError(f"Failed to list files: {str(e)}")
 
     def get_file_url(self, filename: str, expires_in: int = 3600) -> str:
-        return self.client.generate_presigned_url(
-            'get_object',
-            Params={'Bucket': self.bucket, 'Key': filename},
-            ExpiresIn=expires_in
-        )
+        try:
+            logger.debug(f"Generating presigned URL for file {filename} with expiration {expires_in} seconds")
+            url = self.client.generate_presigned_url(
+                'get_object',
+                Params={
+                    'Bucket': self.bucket,
+                    'Key': filename
+                },
+                ExpiresIn=expires_in
+            )
+            logger.debug(f"Successfully generated presigned URL for file {filename}")
+            return url
+        except Exception as e:
+            logger.error(f"Error generating presigned URL for file {filename}: {str(e)}", exc_info=True)
+            raise ValueError(f"Failed to generate presigned URL: {str(e)}")
 
 def get_storage_provider(provider_type: str, **credentials) -> StorageProvider:
     """Factory function to create storage provider instances

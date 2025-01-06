@@ -12,6 +12,11 @@ import json
 from flask_wtf.csrf import CSRFProtect, generate_csrf
 import re
 
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 1024 * 1024 * 1024 * 1024  # 1 TB
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', secrets.token_hex(32))
@@ -49,7 +54,6 @@ def get_csrf_token():
     return response
 
 # Set up logging
-logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 CHUNK_SIZE = 100 * 1024 * 1024  # 100 MB chunks
@@ -243,7 +247,7 @@ def configure_storage():
                     return jsonify({'error': 'Region is required'}), 400
                 if not re.match(r'^[a-z0-9][a-z0-9.-]{2,62}[a-z0-9]$', bucket):
                     return jsonify({'error': 'Invalid bucket name format for Hetzner Storage'}), 400
-                if region not in ['eu-central-1', 'us-east-1', 'us-west-1']:
+                if region not in ['nbg1', 'fsn1', 'hel1', 'ash', 'hil', 'sin']:
                     return jsonify({'error': 'Invalid region for Hetzner Storage'}), 400
 
                 credentials = {
