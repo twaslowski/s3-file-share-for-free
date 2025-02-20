@@ -393,5 +393,20 @@ def logout():
     session.clear()
     return redirect(url_for('configure_storage'))
 
+@app.route('/share/<path:filename>')
+@login_required
+def share_file(filename):
+    provider = get_current_provider()
+    if not provider:
+        return jsonify({'error': 'Storage not configured'}), 400
+        
+    try:
+        # Generate a URL that expires in 7 days (604800 seconds)
+        url = provider.get_file_url(filename, expires_in=604800)
+        return jsonify({'url': url}), 200
+    except Exception as e:
+        logger.error(f"Error generating share link: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(debug=True, port=5001)

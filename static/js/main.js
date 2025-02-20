@@ -241,6 +241,12 @@ document.addEventListener('DOMContentLoaded', () => {
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                                     </svg>
                                 </button>` : ''}
+                            <button onclick="shareFile('${file.name}')"
+                                class="p-1 hover:bg-purple-100 rounded-full" title="Share">
+                                <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+                                </svg>
+                            </button>
                             <a href="/download/${encodeURIComponent(file.name)}" 
                                 class="p-1 hover:bg-green-100 rounded-full" title="Download">
                                 <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -366,4 +372,33 @@ document.addEventListener('DOMContentLoaded', () => {
             showMessage('Failed to create folder', 'error');
         }
     }
+
+    window.shareFile = async function(filename) {
+        try {
+            const response = await fetch(`/share/${encodeURIComponent(filename)}`, {
+                headers: {
+                    'X-CSRFToken': csrfToken
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to generate share link');
+            }
+            
+            const data = await response.json();
+            
+            // Create a temporary input to copy the URL
+            const input = document.createElement('input');
+            input.value = data.url;
+            document.body.appendChild(input);
+            input.select();
+            document.execCommand('copy');
+            document.body.removeChild(input);
+            
+            showMessage('Share link copied to clipboard!', 'success');
+        } catch (error) {
+            console.error('Share error:', error);
+            showMessage('Failed to generate share link', 'error');
+        }
+    };
 });
