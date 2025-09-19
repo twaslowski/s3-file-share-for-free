@@ -74,31 +74,31 @@ The Cloud Storage Manager supports multiple cloud storage providers, giving you 
 
 ### Installation
 
-1. Clone the repository: 
+**Clone the repository**: 
 ```bash
 git clone https://github.com/rohitg00/s3-file-share-for-free.git
 cd s3-file-share-for-free
 ```
-2. Running Application using poetry:
-- Install dependencies:
+
+**Install dependencies**
 ```bash
+# With poetry
+poetry env use 3.10  # or higher
 poetry install
-```
-- Start the application:
-```bash
-poetry run python app.py
-```
-3. Running Application using PIP:
-- Install dependencies:
-```bash
+
+# With pip
 pip install -r requirements.txt
-```
-- Start the application:
-```bash
-python app.py
+
+# with uv
+uv pip install -r requirements.txt
 ```
 
-4. Open your browser and navigate to `http://localhost:5001` to access the application.
+**Start the application**:
+```bash
+poetry run python main.py
+```
+
+Open your browser and navigate to `http://localhost:5001` to access the application.
 
 ## Run with Docker
 
