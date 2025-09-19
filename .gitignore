@@ -1,4 +1,6 @@
 .env
+.envrc
+
 .DS_Store
 .pythonlibs
 .upm

@@ -82,15 +82,10 @@ cd s3-file-share-for-free
 
 **Install dependencies**
 ```bash
-# With poetry
-poetry env use 3.10  # or higher
 poetry install
 
 # With pip
 pip install -r requirements.txt
-
-# with uv
-uv pip install -r requirements.txt
 ```
 
 **Start the application**:
@@ -110,24 +105,39 @@ docker build -t s3-file-share:latest .
 ```
 - Run locally (development settings, no HTTPS redirect):
 ```bash
-docker run --rm -p 5001:5001 -e FLASK_SECRET_KEY=$(openssl rand -hex 32) s3-file-share:latest
+docker run --rm -p 5001:5001 s3-file-share:latest
 ```
 - Production-style run with Gunicorn (behind TLS-terminating proxy):
 ```bash
 docker run --rm -p 5001:5001 \
   -e PRODUCTION=true \
   -e FLASK_SECRET_KEY=change-me \
+  -e AWS_ACCESS_KEY_ID=your_key \
+  -e AWS_SECRET_ACCESS_KEY=your_secret \
+  -e S3_BUCKET=your_bucket \
+  -e AWS_REGION=us-east-1 \
   s3-file-share:latest \
   gunicorn 'app:app' -b 0.0.0.0:5001 \
   --workers 3 --threads 8 --timeout 120 \
   --forwarded-allow-ips="*" --proxy-allow-from="*" --access-logfile -
 ```
-
 Notes:
 - The app enforces HTTPS when not in debug mode. If you run in production, place it behind a reverse proxy that sets X-Forwarded-Proto=https, or keep PRODUCTION=false for simple local testing.
 - Default container port is 5001. Map as needed.
 
 ## Configuration
+
+### Auto-authentication from config or environment
+- On startup and on each request, if `s3_config.json` exists and contains valid AWS S3 credentials (access key, secret, bucket), the app will auto-authenticate and skip the `/configure` form.
+- If `s3_config.json` is missing, the app will try to load credentials from environment variables:
+  - `AWS_ACCESS_KEY_ID`
+  - `AWS_SECRET_ACCESS_KEY`
+  - `S3_BUCKET`
+  - `AWS_REGION` (default: `us-east-1`)
+- Precedence: File > Environment. Partial environment values are supported but the app only auto-authenticates if all required values are present.
+- To reset or change provider, visit `/logout`, then go to `/configure`.
+
+### Configure in the UI
 1. Click "Configure Storage" button
 2. Select your preferred storage provider
 3. Enter provider-specific credentials:
@@ -205,6 +215,7 @@ The application uses:
    ```env
    AWS_ACCESS_KEY_ID=your_access_key_id
    AWS_SECRET_ACCESS_KEY=your_secret_access_key
+   S3_BUCKET=your_bucket
    AWS_REGION=your_aws_region
    ```
 
