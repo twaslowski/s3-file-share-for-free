@@ -1,0 +1,37 @@
+# VCS and CI
+.git
+.github
+
+# Python caches
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+
+# Environments
+.venv/
+.env
+.env.*
+
+# IDE/editor
+.idea/
+.vscode/
+
+# Builds and dists
+build/
+dist/
+*.egg-info/
+
+# Logs and local databases
+*.log
+*.sqlite3
+*.db
+
+# Node (if any front-end tooling is added later)
+node_modules/
+
+# Misc
+.DS_Store
+poetry.lock
+

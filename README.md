@@ -100,6 +100,32 @@ python app.py
 
 4. Open your browser and navigate to `http://localhost:5001` to access the application.
 
+## Run with Docker
+
+A minimal Dockerfile is included that installs dependencies with pip on a slim Python base image.
+
+- Build the image:
+```bash
+docker build -t s3-file-share:latest .
+```
+- Run locally (development settings, no HTTPS redirect):
+```bash
+docker run --rm -p 5001:5001 -e FLASK_SECRET_KEY=$(openssl rand -hex 32) s3-file-share:latest
+```
+- Production-style run with Gunicorn (behind TLS-terminating proxy):
+```bash
+docker run --rm -p 5001:5001 \
+  -e PRODUCTION=true \
+  -e FLASK_SECRET_KEY=change-me \
+  s3-file-share:latest \
+  gunicorn 'app:app' -b 0.0.0.0:5001 \
+  --workers 3 --threads 8 --timeout 120 \
+  --forwarded-allow-ips="*" --proxy-allow-from="*" --access-logfile -
+```
+
+Notes:
+- The app enforces HTTPS when not in debug mode. If you run in production, place it behind a reverse proxy that sets X-Forwarded-Proto=https, or keep PRODUCTION=false for simple local testing.
+- Default container port is 5001. Map as needed.
 
 ## Configuration
 1. Click "Configure Storage" button
