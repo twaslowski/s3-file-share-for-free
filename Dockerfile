@@ -26,4 +26,3 @@ EXPOSE 5001
 # Default: run the Flask app via main.py (debug True) to avoid HTTPS redirect loops in simple Docker runs
 # For production, override the CMD with gunicorn (see README notes)
 CMD ["python", "main.py"]
-
